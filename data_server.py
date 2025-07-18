@@ -30,7 +30,7 @@ try:
         credential_paths = [
             "serviceAccount.json",
             "firebase-credentials.json",
-            os.path.join(os.getcwd(), "serviceAccount.json")
+            os.path.join(os.getcwd(), "firebase-credentials.json")
         ]
         
         cred = None
