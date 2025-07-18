@@ -14,8 +14,8 @@ import re
 from functools import wraps
 
 # --- Configuration ---
-# INVESTING_URL = 'https://it.investing.com/commodities/london-gas-oil'  # COMMENTED OUT - Using only Bloomberg now
-BLOOMBERG_URL = 'https://www.bloomberg.com/energy'
+INVESTING_URL = 'https://it.investing.com/commodities/london-gas-oil'  # Re-enabled for investing.com scraping
+# BLOOMBERG_URL = 'https://www.bloomberg.com/energy'  # COMMENTED OUT - Using only investing.com now
 EXCHANGE_RATE_URL = 'https://api.frankfurter.app/latest?from=USD&to=EUR'
 FIRESTORE_COLLECTION = 'platts'
 FIRESTORE_DOCUMENT = 'auto10'
@@ -111,382 +111,382 @@ def get_base_value_from_firestore():
         print(f"Error retrieving from Firestore: {e}")
         return 729.25, 1.1646  # Default values
 
-# COMMENTED OUT - Using only Bloomberg scraping now
-# def get_price_change_from_investing():
-#     """
-#     Scrapes price change from investing.com
-#     """
-#     print("--- Starting price change scraping ---")
-#     
-#     options = webdriver.ChromeOptions()
-#     options.add_argument('--headless')
-#     options.add_argument('--no-sandbox')
-#     options.add_argument('--disable-dev-shm-usage')
-#     options.add_argument('user-agent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36')
-#     
-#     try:
-#         with webdriver.Chrome(service=ChromeService(ChromeDriverManager().install()), options=options) as driver:
-#             print(f"Fetching {INVESTING_URL}...")
-#             driver.get(INVESTING_URL)
-#             
-#             wait = WebDriverWait(driver, 30)
-# 
-#             # Handle cookie consent if present
-#             try:
-#                 cookie_button = wait.until(EC.element_to_be_clickable((By.XPATH, "//*[contains(text(), 'Accept')] | //button[contains(text(), 'Accept')] | //*[contains(text(), 'Accetta')]")))
-#                 cookie_button.click()
-#                 print("Cookie consent accepted.")
-#             except Exception:
-#                 print("No cookie consent found, continuing...")
-# 
-#             print("Looking for price change element...")
-#             
-#             # Look for the specific element with price change
-#             price_change_element = wait.until(EC.presence_of_element_located((By.CSS_SELECTOR, 'span[data-test="instrument-price-change"]')))
-#             price_change_text = price_change_element.text
-#             
-#             print(f"Found price change: {price_change_text}")
-#             
-#             # Extract numeric value from the text (handle + or - signs)
-#             # Remove + sign and convert , to . for decimal
-#             price_change_clean = price_change_text.replace('+', '').replace(',', '.')
-#             
-#             try:
-#                 price_change_value = float(price_change_clean)
-#                 print(f"Extracted price change value: {price_change_value}")
-#                 return price_change_value
-#             except ValueError as e:
-#                 print(f"Error parsing price change value: {e}")
-#                 return None
-#                 
-#     except Exception as e:
-#         print(f"!!! Selenium scraping failed: {e}")
-#         return None
-
-def get_bloomberg_change():
+def get_price_change_from_investing():
     """
-    Scrapes Gasoil (Nymex) change from Bloomberg Energy page
+    Scrapes price change from investing.com
     """
-    print("--- Starting Bloomberg scraping ---")
+    print("--- Starting price change scraping ---")
     
     options = webdriver.ChromeOptions()
     options.add_argument('--headless')
     options.add_argument('--no-sandbox')
     options.add_argument('--disable-dev-shm-usage')
-    options.add_argument('--disable-blink-features=AutomationControlled')
-    options.add_argument('--disable-gpu')
-    options.add_argument('--disable-software-rasterizer')
-    options.add_argument('--disable-background-timer-throttling')
-    options.add_argument('--disable-backgrounding-occluded-windows')
-    options.add_argument('--disable-renderer-backgrounding')
-    options.add_argument('--disable-features=TranslateUI')
-    options.add_argument('--disable-ipc-flooding-protection')
-    options.add_argument('--remote-debugging-port=9222')
-    options.add_experimental_option("excludeSwitches", ["enable-automation"])
-    options.add_experimental_option('useAutomationExtension', False)
-    options.add_argument('--user-agent=Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36')
+    options.add_argument('user-agent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36')
     
     try:
-        # Try to use Chrome, fallback to Chromium if needed
-        try:
-            driver = webdriver.Chrome(service=ChromeService(ChromeDriverManager().install()), options=options)
-        except Exception as chrome_error:
-            print(f"Chrome failed, trying Chromium: {chrome_error}")
-            # Fallback to Chromium
-            options.binary_location = "/usr/bin/chromium"
-            driver = webdriver.Chrome(service=ChromeService(ChromeDriverManager().install()), options=options)
-        
-        with driver:
-            # Execute script to remove webdriver property
-            driver.execute_script("Object.defineProperty(navigator, 'webdriver', {get: () => undefined})")
-            
-            print(f"Fetching {BLOOMBERG_URL}...")
-            driver.get(BLOOMBERG_URL)
-            
-            # Wait for page to load and add delay for JavaScript content
-            import time
-            time.sleep(5)
+        with webdriver.Chrome(service=ChromeService(ChromeDriverManager().install()), options=options) as driver:
+            print(f"Fetching {INVESTING_URL}...")
+            driver.get(INVESTING_URL)
             
             wait = WebDriverWait(driver, 30)
 
             # Handle cookie consent if present
             try:
-                cookie_button = wait.until(EC.element_to_be_clickable((By.XPATH, "//*[contains(text(), 'Accept')] | //button[contains(text(), 'Accept')] | //*[contains(text(), 'Accetta')] | //*[contains(text(), 'agree')]")))
+                cookie_button = wait.until(EC.element_to_be_clickable((By.XPATH, "//*[contains(text(), 'Accept')] | //button[contains(text(), 'Accept')] | //*[contains(text(), 'Accetta')]")))
                 cookie_button.click()
                 print("Cookie consent accepted.")
-                time.sleep(2)
             except Exception:
                 print("No cookie consent found, continuing...")
 
-            print("Looking for QS1:COM Gasoil (Nymex) data...")
+            print("Looking for price change element...")
             
-            # Wait for table content to load with specific selectors
+            # Look for the specific element with price change
+            price_change_element = wait.until(EC.presence_of_element_located((By.CSS_SELECTOR, 'span[data-test="instrument-price-change"]')))
+            price_change_text = price_change_element.text
+            
+            print(f"Found price change: {price_change_text}")
+            
+            # Extract numeric value from the text (handle + or - signs)
+            # Remove + sign and convert , to . for decimal
+            price_change_clean = price_change_text.replace('+', '').replace(',', '.')
+            
             try:
-                # Wait for the data table to be present
-                wait.until(EC.presence_of_element_located((By.CSS_SELECTOR, "tr.data-table-row")))
-                time.sleep(5)  # Extended wait for dynamic content
-                
-                print("Searching for QS1:COM row using CSS selectors...")
-                
-                # Method 1: Look for QS1:COM using the exact table structure
-                qs1_rows = driver.find_elements(By.CSS_SELECTOR, "tr.data-table-row")
-                print(f"Found {len(qs1_rows)} data table rows")
-                
-                # DETAILED DEBUG: Show all table content
-                print("\n=== COMPLETE TABLE CONTENT DEBUG ===")
-                
-                for i, row in enumerate(qs1_rows):
-                    try:
-                        print(f"\n--- ROW {i+1} ---")
-                        row_text = row.text.strip()
-                        print(f"Row text: '{row_text}'")
-                        
-                        # Get all cells in this row
-                        all_cells = row.find_elements(By.CSS_SELECTOR, "td, th")
-                        print(f"Found {len(all_cells)} cells in row {i+1}")
-                        
-                        for j, cell in enumerate(all_cells):
-                            cell_text = cell.text.strip()
-                            cell_data_type = cell.get_attribute("data-type")
-                            cell_aria_label = cell.get_attribute("aria-label")
-                            print(f"  Cell {j+1}: '{cell_text}' (data-type: {cell_data_type}, aria-label: {cell_aria_label})")
-                            
-                            # Look for spans inside the cell
-                            spans = cell.find_elements(By.CSS_SELECTOR, "span.data-table-row-cell__value")
-                            for k, span in enumerate(spans):
-                                span_text = span.text.strip()
-                                print(f"    Span {k+1}: '{span_text}'")
-                        
-                        # Check if this row contains QS1:COM
-                        qs1_link = row.find_elements(By.CSS_SELECTOR, "a[href*='QS1:COM']")
-                        if qs1_link:
-                            print(f"*** QS1:COM ROW FOUND! Row {i+1} ***")
-                            
-                            # Get the HTML content of the row
-                            row_html = row.get_attribute("innerHTML")
-                            print(f"Row HTML: {row_html[:500]}...")  # First 500 chars
-                            
-                            # Get ALL cells in order and check the 4th one specifically
-                            all_row_cells = row.find_elements(By.CSS_SELECTOR, "td, th")
-                            print(f"*** QS1:COM ROW HAS {len(all_row_cells)} TOTAL CELLS ***")
-                            
-                            for cell_idx, cell in enumerate(all_row_cells):
-                                cell_text = cell.text.strip()
-                                cell_html = cell.get_attribute("innerHTML")
-                                cell_data_type = cell.get_attribute("data-type")
-                                print(f"*** QS1:COM Cell {cell_idx+1}: '{cell_text}' (data-type: {cell_data_type}) ***")
-                                print(f"    Cell HTML: {cell_html[:200]}...")
-                                
-                                # Look for spans in each cell
-                                cell_spans = cell.find_elements(By.CSS_SELECTOR, "span.data-table-row-cell__value")
-                                for span_idx, span in enumerate(cell_spans):
-                                    span_text = span.text.strip()
-                                    print(f"    Span {span_idx+1}: '{span_text}'")
-                                
-                                # Check if this is the 4th cell (index 3) - the change value cell
-                                if cell_idx == 3:  # 4th cell (0-indexed)
-                                    print(f"*** CHECKING 4TH CELL FOR CHANGE VALUE ***")
-                                    
-                                    # Try to extract value directly from HTML using regex
-                                    html_match = re.search(r'<span class="data-table-row-cell__value">([+-]?\d+\.?\d*)</span>', cell_html)
-                                    if html_match:
-                                        html_value = html_match.group(1)
-                                        print(f"*** FOUND VALUE IN HTML: '{html_value}' ***")
-                                        
-                                        if html_value and html_value.startswith(('+', '-')):
-                                            try:
-                                                change_value = float(html_value.replace('+', '').replace(',', '.'))
-                                                print(f"*** FOUND QS1:COM CHANGE VALUE FROM HTML: {html_value} -> {change_value} ***")
-                                                return change_value
-                                            except ValueError:
-                                                print(f"Could not parse '{html_value}' as float")
-                                    
-                                    # Try using JavaScript to get the value
-                                    try:
-                                        js_value = driver.execute_script("return arguments[0].innerText || arguments[0].textContent;", cell)
-                                        print(f"*** JavaScript cell value: '{js_value}' ***")
-                                        
-                                        if js_value and js_value.strip().startswith(('+', '-')) and not js_value.endswith('%'):
-                                            try:
-                                                change_value = float(js_value.strip().replace('+', '').replace(',', '.'))
-                                                print(f"*** FOUND QS1:COM CHANGE VALUE FROM JS: {js_value} -> {change_value} ***")
-                                                return change_value
-                                            except ValueError:
-                                                print(f"Could not parse '{js_value}' as float")
-                                    except Exception as e:
-                                        print(f"JavaScript extraction failed: {e}")
-                                    
-                                    # Try to get the span value
-                                    if cell_spans:
-                                        for span in cell_spans:
-                                            span_text = span.text.strip()
-                                            print(f"*** 4th cell span text: '{span_text}' ***")
-                                            
-                                            # Try JavaScript on the span directly
-                                            try:
-                                                js_span_value = driver.execute_script("return arguments[0].innerText || arguments[0].textContent;", span)
-                                                print(f"*** JavaScript span value: '{js_span_value}' ***")
-                                                
-                                                if js_span_value and js_span_value.strip().startswith(('+', '-')) and not js_span_value.endswith('%'):
-                                                    try:
-                                                        change_value = float(js_span_value.strip().replace('+', '').replace(',', '.'))
-                                                        print(f"*** FOUND QS1:COM CHANGE VALUE FROM JS SPAN: {js_span_value} -> {change_value} ***")
-                                                        return change_value
-                                                    except ValueError:
-                                                        print(f"Could not parse '{js_span_value}' as float")
-                                            except Exception as e:
-                                                print(f"JavaScript span extraction failed: {e}")
-                                            
-                                            if span_text and span_text.startswith(('+', '-')) and not span_text.endswith('%'):
-                                                try:
-                                                    change_value = float(span_text.replace('+', '').replace(',', '.'))
-                                                    print(f"*** FOUND QS1:COM CHANGE VALUE FROM 4TH CELL: {span_text} -> {change_value} ***")
-                                                    return change_value
-                                                except ValueError:
-                                                    print(f"Could not parse '{span_text}' as float")
-                                    
-                                    # If span is empty, try cell text directly
-                                    if cell_text and cell_text.startswith(('+', '-')) and not cell_text.endswith('%'):
-                                        try:
-                                            change_value = float(cell_text.replace('+', '').replace(',', '.'))
-                                            print(f"*** FOUND QS1:COM CHANGE VALUE FROM 4TH CELL DIRECT: {cell_text} -> {change_value} ***")
-                                            return change_value
-                                        except ValueError:
-                                            print(f"Could not parse '{cell_text}' as float")
-                            
-                            # Wait a bit more and try again if cells are empty
-                            if not any(cell.text.strip() for cell in all_row_cells[1:]):  # Skip first cell (header)
-                                print("*** CELLS ARE EMPTY, WAITING MORE FOR JAVASCRIPT TO LOAD ***")
-                                time.sleep(3)
-                                
-                                # Try again
-                                all_row_cells = row.find_elements(By.CSS_SELECTOR, "td, th")
-                                print(f"*** RETRY: QS1:COM ROW HAS {len(all_row_cells)} TOTAL CELLS ***")
-                                
-                                for cell_idx, cell in enumerate(all_row_cells):
-                                    cell_text = cell.text.strip()
-                                    print(f"*** RETRY Cell {cell_idx+1}: '{cell_text}' ***")
-                                    
-                                    if cell_idx == 3:  # 4th cell
-                                        print(f"*** RETRY CHECKING 4TH CELL ***")
-                                        cell_spans = cell.find_elements(By.CSS_SELECTOR, "span.data-table-row-cell__value")
-                                        
-                                        for span in cell_spans:
-                                            span_text = span.text.strip()
-                                            print(f"*** RETRY 4th cell span: '{span_text}' ***")
-                                            
-                                            if span_text and span_text.startswith(('+', '-')) and not span_text.endswith('%'):
-                                                try:
-                                                    change_value = float(span_text.replace('+', '').replace(',', '.'))
-                                                    print(f"*** FOUND QS1:COM CHANGE VALUE FROM 4TH CELL RETRY: {span_text} -> {change_value} ***")
-                                                    return change_value
-                                                except ValueError:
-                                                    print(f"Could not parse '{span_text}' as float")
-                                        
-                                        if cell_text and cell_text.startswith(('+', '-')) and not cell_text.endswith('%'):
-                                            try:
-                                                change_value = float(cell_text.replace('+', '').replace(',', '.'))
-                                                print(f"*** FOUND QS1:COM CHANGE VALUE FROM 4TH CELL DIRECT RETRY: {cell_text} -> {change_value} ***")
-                                                return change_value
-                                            except ValueError:
-                                                print(f"Could not parse '{cell_text}' as float")
-                        
-                        # Alternative: Look for Gasoil (Nymex) text in the row
-                        gasoil_text = row.find_elements(By.XPATH, ".//*[contains(text(), 'Gasoil') and contains(text(), 'Nymex')]")
-                        if gasoil_text:
-                            print(f"*** GASOIL (NYMEX) ROW FOUND! Row {i+1} ***")
-                            
-                            # Extract the change value
-                            change_cells = row.find_elements(By.CSS_SELECTOR, "td[data-type='better'] span.data-table-row-cell__value")
-                            if change_cells:
-                                for j, cell in enumerate(change_cells):
-                                    change_text = cell.text.strip()
-                                    print(f"*** Gasoil change cell {j+1}: '{change_text}' ***")
-                                    
-                                    if change_text and change_text.startswith(('+', '-')) and not change_text.endswith('%'):
-                                        try:
-                                            change_value = float(change_text.replace('+', '').replace(',', '.'))
-                                            print(f"*** FOUND GASOIL CHANGE VALUE: {change_text} -> {change_value} ***")
-                                            return change_value
-                                        except ValueError:
-                                            continue
-                    
-                    except Exception as e:
-                        print(f"Error processing row {i+1}: {e}")
-                        continue
-                
-                print("\n=== END TABLE CONTENT DEBUG ===\n")
-                
-                # Method 2: Broader search through all table cells
-                print("Searching through all table cells...")
-                all_cells = driver.find_elements(By.CSS_SELECTOR, "span.data-table-row-cell__value")
-                print(f"Found {len(all_cells)} table cells")
-                
-                for i, cell in enumerate(all_cells):
-                    try:
-                        cell_text = cell.text.strip()
-                        if cell_text == "QS1:COM":
-                            print(f"Found QS1:COM cell at position {i+1}")
-                            
-                            # Look for the parent row
-                            row = cell.find_element(By.XPATH, "./ancestor::tr")
-                            
-                            # Find change values in this row
-                            change_cells = row.find_elements(By.CSS_SELECTOR, "td[data-type='better'] span.data-table-row-cell__value")
-                            for j, change_cell in enumerate(change_cells):
-                                change_text = change_cell.text.strip()
-                                print(f"QS1:COM row change cell {j+1}: '{change_text}'")
-                                
-                                if change_text and change_text.startswith(('+', '-')) and not change_text.endswith('%'):
-                                    try:
-                                        change_value = float(change_text.replace('+', '').replace(',', '.'))
-                                        print(f"Found QS1:COM change value: {change_text} -> {change_value}")
-                                        return change_value
-                                    except ValueError:
-                                        continue
-                    except Exception as e:
-                        continue
-                
-                # Method 3: Try to find any change value in USD/MT context
-                print("Searching for USD/MT context...")
-                usd_mt_cells = driver.find_elements(By.XPATH, "//*[contains(text(), 'USD/MT')]")
-                
-                for cell in usd_mt_cells:
-                    try:
-                        # Get the parent row
-                        row = cell.find_element(By.XPATH, "./ancestor::tr")
-                        
-                        # Check if this row contains Gasoil or QS1
-                        row_text = row.text.lower()
-                        if 'gasoil' in row_text or 'qs1' in row_text:
-                            print(f"Found USD/MT row with Gasoil/QS1: {row.text}")
-                            
-                            # Find change values in this row
-                            change_cells = row.find_elements(By.CSS_SELECTOR, "td[data-type='better'] span.data-table-row-cell__value")
-                            for change_cell in change_cells:
-                                change_text = change_cell.text.strip()
-                                print(f"USD/MT row change: '{change_text}'")
-                                
-                                if change_text and change_text.startswith(('+', '-')) and not change_text.endswith('%'):
-                                    try:
-                                        change_value = float(change_text.replace('+', '').replace(',', '.'))
-                                        print(f"Found USD/MT change value: {change_text} -> {change_value}")
-                                        return change_value
-                                    except ValueError:
-                                        continue
-                    except Exception as e:
-                        continue
-                
-                print("Could not find QS1:COM/Gasoil change value in any method")
+                price_change_value = float(price_change_clean)
+                print(f"Extracted price change value: {price_change_value}")
+                return price_change_value
+            except ValueError as e:
+                print(f"Error parsing price change value: {e}")
                 return None
                 
-            except Exception as e:
-                print(f"Error waiting for table content: {e}")
-                return None
-
     except Exception as e:
-        print(f"!!! Bloomberg scraping failed: {e}")
+        print(f"!!! Selenium scraping failed: {e}")
         return None
+
+# COMMENTED OUT - Using only investing.com scraping now
+# def get_bloomberg_change():
+#     """
+#     Scrapes Gasoil (Nymex) change from Bloomberg Energy page
+#     """
+#     print("--- Starting Bloomberg scraping ---")
+#     
+#     options = webdriver.ChromeOptions()
+#     options.add_argument('--headless')
+#     options.add_argument('--no-sandbox')
+#     options.add_argument('--disable-dev-shm-usage')
+#     options.add_argument('--disable-blink-features=AutomationControlled')
+#     options.add_argument('--disable-gpu')
+#     options.add_argument('--disable-software-rasterizer')
+#     options.add_argument('--disable-background-timer-throttling')
+#     options.add_argument('--disable-backgrounding-occluded-windows')
+#     options.add_argument('--disable-renderer-backgrounding')
+#     options.add_argument('--disable-features=TranslateUI')
+#     options.add_argument('--disable-ipc-flooding-protection')
+#     options.add_argument('--remote-debugging-port=9222')
+#     options.add_experimental_option("excludeSwitches", ["enable-automation"])
+#     options.add_experimental_option('useAutomationExtension', False)
+#     options.add_argument('--user-agent=Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36')
+#     
+#     try:
+#         # Try to use Chrome, fallback to Chromium if needed
+#         try:
+#             driver = webdriver.Chrome(service=ChromeService(ChromeDriverManager().install()), options=options)
+#         except Exception as chrome_error:
+#             print(f"Chrome failed, trying Chromium: {chrome_error}")
+#             # Fallback to Chromium
+#             options.binary_location = "/usr/bin/chromium"
+#             driver = webdriver.Chrome(service=ChromeService(ChromeDriverManager().install()), options=options)
+#         
+#         with driver:
+#             # Execute script to remove webdriver property
+#             driver.execute_script("Object.defineProperty(navigator, 'webdriver', {get: () => undefined})")
+#             
+#             print(f"Fetching {BLOOMBERG_URL}...")
+#             driver.get(BLOOMBERG_URL)
+#             
+#             # Wait for page to load and add delay for JavaScript content
+#             import time
+#             time.sleep(5)
+#             
+#             wait = WebDriverWait(driver, 30)
+# 
+#             # Handle cookie consent if present
+#             try:
+#                 cookie_button = wait.until(EC.element_to_be_clickable((By.XPATH, "//*[contains(text(), 'Accept')] | //button[contains(text(), 'Accept')] | //*[contains(text(), 'Accetta')] | //*[contains(text(), 'agree')]")))
+#                 cookie_button.click()
+#                 print("Cookie consent accepted.")
+#                 time.sleep(2)
+#             except Exception:
+#                 print("No cookie consent found, continuing...")
+# 
+#             print("Looking for QS1:COM Gasoil (Nymex) data...")
+#             
+#             # Wait for table content to load with specific selectors
+#             try:
+#                 # Wait for the data table to be present
+#                 wait.until(EC.presence_of_element_located((By.CSS_SELECTOR, "tr.data-table-row")))
+#                 time.sleep(5)  # Extended wait for dynamic content
+#                 
+#                 print("Searching for QS1:COM row using CSS selectors...")
+#                 
+#                 # Method 1: Look for QS1:COM using the exact table structure
+#                 qs1_rows = driver.find_elements(By.CSS_SELECTOR, "tr.data-table-row")
+#                 print(f"Found {len(qs1_rows)} data table rows")
+#                 
+#                 # DETAILED DEBUG: Show all table content
+#                 print("\n=== COMPLETE TABLE CONTENT DEBUG ===")
+#                 
+#                 for i, row in enumerate(qs1_rows):
+#                     try:
+#                         print(f"\n--- ROW {i+1} ---")
+#                         row_text = row.text.strip()
+#                         print(f"Row text: '{row_text}'")
+#                         
+#                         # Get all cells in this row
+#                         all_cells = row.find_elements(By.CSS_SELECTOR, "td, th")
+#                         print(f"Found {len(all_cells)} cells in row {i+1}")
+#                         
+#                         for j, cell in enumerate(all_cells):
+#                             cell_text = cell.text.strip()
+#                             cell_data_type = cell.get_attribute("data-type")
+#                             cell_aria_label = cell.get_attribute("aria-label")
+#                             print(f"  Cell {j+1}: '{cell_text}' (data-type: {cell_data_type}, aria-label: {cell_aria_label})")
+#                             
+#                             # Look for spans inside the cell
+#                             spans = cell.find_elements(By.CSS_SELECTOR, "span.data-table-row-cell__value")
+#                             for k, span in enumerate(spans):
+#                                 span_text = span.text.strip()
+#                                 print(f"    Span {k+1}: '{span_text}'")
+#                         
+#                         # Check if this row contains QS1:COM
+#                         qs1_link = row.find_elements(By.CSS_SELECTOR, "a[href*='QS1:COM']")
+#                         if qs1_link:
+#                             print(f"*** QS1:COM ROW FOUND! Row {i+1} ***")
+#                             
+#                             # Get the HTML content of the row
+#                             row_html = row.get_attribute("innerHTML")
+#                             print(f"Row HTML: {row_html[:500]}...")  # First 500 chars
+#                             
+#                             # Get ALL cells in order and check the 4th one specifically
+#                             all_row_cells = row.find_elements(By.CSS_SELECTOR, "td, th")
+#                             print(f"*** QS1:COM ROW HAS {len(all_row_cells)} TOTAL CELLS ***")
+#                             
+#                             for cell_idx, cell in enumerate(all_row_cells):
+#                                 cell_text = cell.text.strip()
+#                                 cell_html = cell.get_attribute("innerHTML")
+#                                 cell_data_type = cell.get_attribute("data-type")
+#                                 print(f"*** QS1:COM Cell {cell_idx+1}: '{cell_text}' (data-type: {cell_data_type}) ***")
+#                                 print(f"    Cell HTML: {cell_html[:200]}...")
+#                                 
+#                                 # Look for spans in each cell
+#                                 cell_spans = cell.find_elements(By.CSS_SELECTOR, "span.data-table-row-cell__value")
+#                                 for span_idx, span in enumerate(cell_spans):
+#                                     span_text = span.text.strip()
+#                                     print(f"    Span {span_idx+1}: '{span_text}'")
+#                                 
+#                                 # Check if this is the 4th cell (index 3) - the change value cell
+#                                 if cell_idx == 3:  # 4th cell (0-indexed)
+#                                     print(f"*** CHECKING 4TH CELL FOR CHANGE VALUE ***")
+#                                     
+#                                     # Try to extract value directly from HTML using regex
+#                                     html_match = re.search(r'<span class="data-table-row-cell__value">([+-]?\d+\.?\d*)</span>', cell_html)
+#                                     if html_match:
+#                                         html_value = html_match.group(1)
+#                                         print(f"*** FOUND VALUE IN HTML: '{html_value}' ***")
+#                                         
+#                                         if html_value and html_value.startswith(('+', '-')):
+#                                             try:
+#                                                 change_value = float(html_value.replace('+', '').replace(',', '.'))
+#                                                 print(f"*** FOUND QS1:COM CHANGE VALUE FROM HTML: {html_value} -> {change_value} ***")
+#                                                 return change_value
+#                                             except ValueError:
+#                                                 print(f"Could not parse '{html_value}' as float")
+#                                     
+#                                     # Try using JavaScript to get the value
+#                                     try:
+#                                         js_value = driver.execute_script("return arguments[0].innerText || arguments[0].textContent;", cell)
+#                                         print(f"*** JavaScript cell value: '{js_value}' ***")
+#                                         
+#                                         if js_value and js_value.strip().startswith(('+', '-')) and not js_value.endswith('%'):
+#                                             try:
+#                                                 change_value = float(js_value.strip().replace('+', '').replace(',', '.'))
+#                                                 print(f"*** FOUND QS1:COM CHANGE VALUE FROM JS: {js_value} -> {change_value} ***")
+#                                                 return change_value
+#                                             except ValueError:
+#                                                 print(f"Could not parse '{js_value}' as float")
+#                                     except Exception as e:
+#                                         print(f"JavaScript extraction failed: {e}")
+#                                     
+#                                     # Try to get the span value
+#                                     if cell_spans:
+#                                         for span in cell_spans:
+#                                             span_text = span.text.strip()
+#                                             print(f"*** 4th cell span text: '{span_text}' ***")
+#                                             
+#                                             # Try JavaScript on the span directly
+#                                             try:
+#                                                 js_span_value = driver.execute_script("return arguments[0].innerText || arguments[0].textContent;", span)
+#                                                 print(f"*** JavaScript span value: '{js_span_value}' ***")
+#                                                 
+#                                                 if js_span_value and js_span_value.strip().startswith(('+', '-')) and not js_span_value.endswith('%'):
+#                                                     try:
+#                                                         change_value = float(js_span_value.strip().replace('+', '').replace(',', '.'))
+#                                                         print(f"*** FOUND QS1:COM CHANGE VALUE FROM JS SPAN: {js_span_value} -> {change_value} ***")
+#                                                         return change_value
+#                                                     except ValueError:
+#                                                         print(f"Could not parse '{js_span_value}' as float")
+#                                             except Exception as e:
+#                                                 print(f"JavaScript span extraction failed: {e}")
+#                                             
+#                                             if span_text and span_text.startswith(('+', '-')) and not span_text.endswith('%'):
+#                                                 try:
+#                                                     change_value = float(span_text.replace('+', '').replace(',', '.'))
+#                                                     print(f"*** FOUND QS1:COM CHANGE VALUE FROM 4TH CELL: {span_text} -> {change_value} ***")
+#                                                     return change_value
+#                                                 except ValueError:
+#                                                     print(f"Could not parse '{span_text}' as float")
+#                                     
+#                                     # If span is empty, try cell text directly
+#                                     if cell_text and cell_text.startswith(('+', '-')) and not cell_text.endswith('%'):
+#                                         try:
+#                                             change_value = float(cell_text.replace('+', '').replace(',', '.'))
+#                                             print(f"*** FOUND QS1:COM CHANGE VALUE FROM 4TH CELL DIRECT: {cell_text} -> {change_value} ***")
+#                                             return change_value
+#                                         except ValueError:
+#                                             print(f"Could not parse '{cell_text}' as float")
+#                             
+#                             # Wait a bit more and try again if cells are empty
+#                             if not any(cell.text.strip() for cell in all_row_cells[1:]):  # Skip first cell (header)
+#                                 print("*** CELLS ARE EMPTY, WAITING MORE FOR JAVASCRIPT TO LOAD ***")
+#                                 time.sleep(3)
+#                                 
+#                                 # Try again
+#                                 all_row_cells = row.find_elements(By.CSS_SELECTOR, "td, th")
+#                                 print(f"*** RETRY: QS1:COM ROW HAS {len(all_row_cells)} TOTAL CELLS ***")
+#                                 
+#                                 for cell_idx, cell in enumerate(all_row_cells):
+#                                     cell_text = cell.text.strip()
+#                                     print(f"*** RETRY Cell {cell_idx+1}: '{cell_text}' ***")
+#                                     
+#                                     if cell_idx == 3:  # 4th cell
+#                                         print(f"*** RETRY CHECKING 4TH CELL ***")
+#                                         cell_spans = cell.find_elements(By.CSS_SELECTOR, "span.data-table-row-cell__value")
+#                                         
+#                                         for span in cell_spans:
+#                                             span_text = span.text.strip()
+#                                             print(f"*** RETRY 4th cell span: '{span_text}' ***")
+#                                             
+#                                             if span_text and span_text.startswith(('+', '-')) and not span_text.endswith('%'):
+#                                                 try:
+#                                                     change_value = float(span_text.replace('+', '').replace(',', '.'))
+#                                                     print(f"*** FOUND QS1:COM CHANGE VALUE FROM 4TH CELL RETRY: {span_text} -> {change_value} ***")
+#                                                     return change_value
+#                                                 except ValueError:
+#                                                     print(f"Could not parse '{span_text}' as float")
+#                                         
+#                                         if cell_text and cell_text.startswith(('+', '-')) and not cell_text.endswith('%'):
+#                                             try:
+#                                                 change_value = float(cell_text.replace('+', '').replace(',', '.'))
+#                                                 print(f"*** FOUND QS1:COM CHANGE VALUE FROM 4TH CELL DIRECT RETRY: {cell_text} -> {change_value} ***")
+#                                                 return change_value
+#                                             except ValueError:
+#                                                 print(f"Could not parse '{cell_text}' as float")
+#                         
+#                         # Alternative: Look for Gasoil (Nymex) text in the row
+#                         gasoil_text = row.find_elements(By.XPATH, ".//*[contains(text(), 'Gasoil') and contains(text(), 'Nymex')]")
+#                         if gasoil_text:
+#                             print(f"*** GASOIL (NYMEX) ROW FOUND! Row {i+1} ***")
+#                             
+#                             # Extract the change value
+#                             change_cells = row.find_elements(By.CSS_SELECTOR, "td[data-type='better'] span.data-table-row-cell__value")
+#                             if change_cells:
+#                                 for j, cell in enumerate(change_cells):
+#                                     change_text = cell.text.strip()
+#                                     print(f"*** Gasoil change cell {j+1}: '{change_text}' ***")
+#                                     
+#                                     if change_text and change_text.startswith(('+', '-')) and not change_text.endswith('%'):
+#                                         try:
+#                                             change_value = float(change_text.replace('+', '').replace(',', '.'))
+#                                             print(f"*** FOUND GASOIL CHANGE VALUE: {change_text} -> {change_value} ***")
+#                                             return change_value
+#                                         except ValueError:
+#                                             continue
+#                     
+#                     except Exception as e:
+#                         print(f"Error processing row {i+1}: {e}")
+#                         continue
+#                 
+#                 print("\n=== END TABLE CONTENT DEBUG ===\n")
+#                 
+#                 # Method 2: Broader search through all table cells
+#                 print("Searching through all table cells...")
+#                 all_cells = driver.find_elements(By.CSS_SELECTOR, "span.data-table-row-cell__value")
+#                 print(f"Found {len(all_cells)} table cells")
+#                 
+#                 for i, cell in enumerate(all_cells):
+#                     try:
+#                         cell_text = cell.text.strip()
+#                         if cell_text == "QS1:COM":
+#                             print(f"Found QS1:COM cell at position {i+1}")
+#                             
+#                             # Look for the parent row
+#                             row = cell.find_element(By.XPATH, "./ancestor::tr")
+#                             
+#                             # Find change values in this row
+#                             change_cells = row.find_elements(By.CSS_SELECTOR, "td[data-type='better'] span.data-table-row-cell__value")
+#                             for j, change_cell in enumerate(change_cells):
+#                                 change_text = change_cell.text.strip()
+#                                 print(f"QS1:COM row change cell {j+1}: '{change_text}'")
+#                                 
+#                                 if change_text and change_text.startswith(('+', '-')) and not change_text.endswith('%'):
+#                                     try:
+#                                         change_value = float(change_text.replace('+', '').replace(',', '.'))
+#                                         print(f"Found QS1:COM change value: {change_text} -> {change_value}")
+#                                         return change_value
+#                                     except ValueError:
+#                                         continue
+#                     except Exception as e:
+#                         continue
+#                 
+#                 # Method 3: Try to find any change value in USD/MT context
+#                 print("Searching for USD/MT context...")
+#                 usd_mt_cells = driver.find_elements(By.XPATH, "//*[contains(text(), 'USD/MT')]")
+#                 
+#                 for cell in usd_mt_cells:
+#                     try:
+#                         # Get the parent row
+#                         row = cell.find_element(By.XPATH, "./ancestor::tr")
+#                         
+#                         # Check if this row contains Gasoil or QS1
+#                         row_text = row.text.lower()
+#                         if 'gasoil' in row_text or 'qs1' in row_text:
+#                             print(f"Found USD/MT row with Gasoil/QS1: {row.text}")
+#                             
+#                             # Find change values in this row
+#                             change_cells = row.find_elements(By.CSS_SELECTOR, "td[data-type='better'] span.data-table-row-cell__value")
+#                             for change_cell in change_cells:
+#                                 change_text = change_cell.text.strip()
+#                                 print(f"USD/MT row change: '{change_text}'")
+#                                 
+#                                 if change_text and change_text.startswith(('+', '-')) and not change_text.endswith('%'):
+#                                     try:
+#                                         change_value = float(change_text.replace('+', '').replace(',', '.'))
+#                                         print(f"Found USD/MT change value: {change_text} -> {change_value}")
+#                                         return change_value
+#                                     except ValueError:
+#                                         continue
+#                     except Exception as e:
+#                         continue
+#                 
+#                 print("Could not find QS1:COM/Gasoil change value in any method")
+#                 return None
+#                 
+#             except Exception as e:
+#                 print(f"Error waiting for table content: {e}")
+#                 return None
+# 
+#     except Exception as e:
+#         print(f"!!! Bloomberg scraping failed: {e}")
+#         return None
 
 def get_exchange_rate():
     """
@@ -516,26 +516,26 @@ def get_data():
     user_email = request.current_user.get('email', 'Unknown')
     print(f"--- Fetching fresh data for user: {user_email} ---")
     
-    # Get all data fresh - Using only Bloomberg scraping now
+    # Get all data fresh - Using only investing.com scraping now
     base_value, base_platts_price = get_base_value_from_firestore()
-    bloomberg_change = get_bloomberg_change()
+    investing_change = get_price_change_from_investing()
     exchange_rate = get_exchange_rate()
     
-    if base_value is None or bloomberg_change is None or exchange_rate is None or base_platts_price is None:
+    if base_value is None or investing_change is None or exchange_rate is None or base_platts_price is None:
         missing = []
         if base_value is None:
             missing.append("base_value")
         if base_platts_price is None:
             missing.append("base_platts_price")
-        if bloomberg_change is None:
-            missing.append("bloomberg_change")
+        if investing_change is None:
+            missing.append("investing_change")
         if exchange_rate is None:
             missing.append("exchange_rate")
         
         return jsonify({"error": f"Missing data: {', '.join(missing)}. Check server logs."}), 500
     
-    # Calculations - Using Bloomberg change as primary source
-    valore_aggiornato = base_value + bloomberg_change
+    # Calculations - Using investing.com change as primary source
+    valore_aggiornato = base_value + investing_change
     quotazione = exchange_rate * 0.845
     final_price = (valore_aggiornato / 1000) * quotazione + 0.6324
     
@@ -545,7 +545,7 @@ def get_data():
     print(f"Calculations completed for {user_email}:")
     print(f"  Base value (mq): {base_value}")
     print(f"  Base Platts price (€/liter): {base_platts_price:.4f}")
-    print(f"  Bloomberg change (QS1:COM): {bloomberg_change}")
+    print(f"  Investing.com change: {investing_change}")
     print(f"  Valore aggiornato: {valore_aggiornato}")
     print(f"  Price variation (€cents/liter): {price_variation_euro_cents:+.2f}")
     print(f"  USD/EUR rate: {exchange_rate}")
@@ -555,15 +555,15 @@ def get_data():
     response_data = {
         "baseValue": f"{base_value:.2f}",
         "basePlattsPrice": f"{base_platts_price:.4f}",
-        "priceChange": f"{bloomberg_change:+.2f}",
+        "priceChange": f"{investing_change:+.2f}",
         "valoreAggiornato": f"{valore_aggiornato:.2f}",
         "priceVariationCents": f"{price_variation_euro_cents:+.2f}",
         "exchangeRate": f"{exchange_rate:.4f}",
         "quotazione": f"{quotazione:.2f}",
         "finalPrice": f"{final_price:.4f}",
-        "bloombergChange": f"{bloomberg_change:+.2f}",
-        "bloombergValoreAggiornato": f"{valore_aggiornato:.2f}",
-        "bloombergFinalPrice": f"{final_price:.4f}",
+        "investingChange": f"{investing_change:+.2f}",
+        "investingValoreAggiornato": f"{valore_aggiornato:.2f}",
+        "investingFinalPrice": f"{final_price:.4f}",
         "lastUpdated": "Fresh data"
     }
 
