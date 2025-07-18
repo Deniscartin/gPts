@@ -1,0 +1,31 @@
+version: '3.8'
+
+services:
+  gasolio-app:
+    build: .
+    container_name: gasolio-tracker
+    ports:
+      - "5001:5001"
+    environment:
+      - PYTHONUNBUFFERED=1
+      - DISPLAY=:99
+    volumes:
+      - ./serviceAccount.json:/app/serviceAccount.json:ro
+      - ./logs:/app/logs
+      - chrome-data:/app/chrome-data
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:5001/"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+    networks:
+      - gasolio-network
+
+volumes:
+  chrome-data:
+
+networks:
+  gasolio-network:
+    driver: bridge 

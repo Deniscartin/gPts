@@ -1,0 +1,221 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ULSD Futures</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            margin: 0;
+            background-color: #f0f2f5;
+        }
+        .container {
+            background-color: #ffffff;
+            padding: 2rem;
+            border-radius: 8px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+            width: 400px;
+        }
+        .quote-header {
+            text-align: center;
+            margin-bottom: 1.5rem;
+            border-bottom: 1px solid #e0e0e0;
+            padding-bottom: 1rem;
+        }
+        .quote-header h1 {
+            font-size: 1.8rem;
+            margin: 0;
+            color: #1c1e21;
+        }
+        .quote-header h2 {
+            font-size: 1rem;
+            font-weight: normal;
+            color: #606770;
+            margin: 0.25rem 0 0 0;
+        }
+        .quote-details {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 1rem;
+            margin-bottom: 1.5rem;
+        }
+        .data-point {
+            background-color: #f6f8fa;
+            padding: 1rem;
+            border-radius: 6px;
+            text-align: center;
+        }
+        .data-point .label {
+            font-size: 0.9rem;
+            color: #606770;
+            display: block;
+            margin-bottom: 0.5rem;
+        }
+        .data-point .value {
+            font-size: 1.5rem;
+            font-weight: bold;
+        }
+        .change.positive { color: #31a24c; }
+        .change.negative { color: #fa383e; }
+
+        .result-container {
+            margin-top: 1.5rem;
+            padding-top: 1.5rem;
+            border-top: 1px solid #e0e0e0;
+            text-align: center;
+        }
+        .result-container h3 {
+            margin: 0 0 0.5rem 0;
+            font-size: 1.2rem;
+            color: #606770;
+            font-weight: normal;
+        }
+        .final-price-value {
+            font-size: 2.5rem;
+            font-weight: bold;
+            color: #1877f2;
+        }
+        button {
+            display: block;
+            width: 100%;
+            margin-top: 1rem;
+            background-color: #1877f2;
+            color: white;
+            border: none;
+            padding: 0.8rem 1.5rem;
+            border-radius: 6px;
+            font-size: 1rem;
+            cursor: pointer;
+            transition: background-color 0.3s;
+        }
+        button:hover {
+            background-color: #166fe5;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="quote-header">
+            <h1 id="product-code">--</h1>
+            <h2>ULSD Futures</h2>
+        </div>
+        <div class="quote-details">
+            <div class="data-point">
+                <span class="label">Last</span>
+                <span id="last-price" class="value">--</span>
+            </div>
+            <div class="data-point">
+                <span class="label">Change</span>
+                <span id="change-value" class="value">--</span>
+            </div>
+             <div class="data-point">
+                <span class="label">Volume</span>
+                <span id="volume-value" class="value">--</span>
+            </div>
+             <div class="data-point">
+                <span class="label">Updated</span>
+                <span id="updated-time" class="value" style="font-size: 1rem;">--</span>
+            </div>
+        </div>
+
+        <div class="result-container">
+            <h3>Prezzo Finale (EUR/litro)</h3>
+            <div id="final-price" class="final-price-value">--</div>
+        </div>
+        <div id="loading-message" style="text-align: center; margin-top: 1rem; color: #606770;"></div>
+        <button id="refresh-btn" disabled>Attendere prego...</button>
+    </div>
+
+    <script>
+        /**
+         * Updates the UI with data received from the server.
+         * @param {object} data - The data object from the /api/data endpoint.
+         */
+        function updateUI(data) {
+            const { quote, finalPrice, usdToEurRate } = data;
+
+            document.getElementById('product-code').textContent = quote.productCode || 'N/A';
+            document.getElementById('last-price').textContent = quote.last || 'N/A';
+            document.getElementById('volume-value').textContent = quote.volume || 'N/A';
+            
+            const changeElement = document.getElementById('change-value');
+            if (quote.change) {
+                changeElement.textContent = quote.change;
+                const changeNumeric = parseFloat(quote.change.replace(',', '.'));
+                if (!isNaN(changeNumeric)) {
+                    changeElement.className = 'value change ' + (changeNumeric >= 0 ? 'positive' : 'negative');
+                }
+            } else {
+                changeElement.textContent = 'N/A';
+            }
+            
+            document.getElementById('final-price').textContent = `${finalPrice} €`;
+            document.getElementById('updated-time').textContent = new Date().toLocaleTimeString();
+        }
+        
+        function showError(message) {
+             document.getElementById('product-code').textContent = 'Errore';
+             document.getElementById('final-price').textContent = 'Fallito';
+             console.error('Errore client:', message);
+             const loadingMessage = document.getElementById('loading-message');
+             if (loadingMessage) {
+                loadingMessage.textContent = message;
+             }
+        }
+
+        async function fetchData() {
+            const refreshBtn = document.getElementById('refresh-btn');
+            refreshBtn.disabled = true;
+            refreshBtn.textContent = 'Aggiornamento...';
+
+            const quoteDetails = document.querySelector('.quote-details');
+            const finalPriceElem = document.getElementById('final-price');
+            quoteDetails.style.opacity = '0.5';
+            finalPriceElem.textContent = 'Caricamento...';
+
+            try {
+                const response = await fetch('/api/data');
+                if (!response.ok) {
+                    const errorData = await response.json();
+                    throw new Error(errorData.error || `Server ha risposto con stato ${response.status}`);
+                }
+                const data = await response.json();
+                updateUI(data);
+
+            } catch (error) {
+                let errorMessage = error.message;
+                if (error.message.toLowerCase().includes('failed to fetch')) {
+                    errorMessage = 'tacci loro ci hanno bloccato per troppe richieste, riprovare tra qualche minuto.';
+                }
+                showError(errorMessage);
+            } finally {
+                quoteDetails.style.opacity = '1';
+                refreshBtn.disabled = false;
+                refreshBtn.textContent = 'Calcola Prezzo LIVE';
+            }
+        }
+
+        document.getElementById('refresh-btn').addEventListener('click', fetchData);
+
+        window.addEventListener('load', () => {
+            const refreshBtn = document.getElementById('refresh-btn');
+            const loadingMessage = document.getElementById('loading-message');
+
+            refreshBtn.disabled = true;
+            refreshBtn.textContent = 'Attendere prego...';
+            loadingMessage.textContent = 'Mi sto connettendo ai mercati LIVE...';
+
+            setTimeout(() => {
+                loadingMessage.textContent = ''; // Clear message
+                refreshBtn.textContent = 'Calcola Prezzo LIVE';
+                refreshBtn.disabled = false;
+            }, 10000); // 10 seconds wait
+        });
+    </script>
+</body>
+</html> 
