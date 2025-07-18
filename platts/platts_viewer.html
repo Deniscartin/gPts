@@ -291,10 +291,10 @@
             <button type="submit" id="auth-submit" class="auth-button">Accedi</button>
         </form>
 
-        <!-- <p>
+        <p>
             <span id="auth-switch-text">Non hai un account?</span>
             <a href="#" id="auth-toggle" class="auth-toggle">Registrati</a>
-        </p> -->
+        </p>
 
         <div id="auth-error" class="error-message"></div>
     </div>
@@ -484,11 +484,11 @@
          * @param {object} data - The data object from the /api/data endpoint.
          */
         function updateUI(data) {
-            const { basePlattsPrice, priceVariationCents, bloombergFinalPrice, lastUpdated } = data;
+            const { basePlattsPrice, priceVariationCents, investingFinalPrice, lastUpdated } = data;
 
             // Update base price and variations
             document.getElementById('base-price').textContent = basePlattsPrice || 'N/A';
-            document.getElementById('final-price').textContent = bloombergFinalPrice || '--';
+            document.getElementById('final-price').textContent = investingFinalPrice || '--';
 
             // Update price variation with color coding
             const variationElement = document.getElementById('price-variation');
