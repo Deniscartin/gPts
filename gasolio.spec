@@ -8,21 +8,42 @@ a = Analysis(
     binaries=[],
     datas=[
         ('platts/platts_viewer.html', 'platts'),
-        ('serviceAccount.json', '.'),
-        ('requirements.txt', '.'),
+        # Include serviceAccount.json only if it exists
+        # ('serviceAccount.json', '.'),
     ],
     hiddenimports=[
         'engineio.async_drivers.threading',
         'flask',
-        'selenium',
         'firebase_admin',
-        'webdriver_manager',
-        'requests'
+        'firebase_admin.credentials',
+        'firebase_admin.firestore',
+        'firebase_admin.auth',
+        'requests',
+        'investpy',
+        'pandas',
+        'numpy',
+        'urllib3',
+        'pkg_resources.py2_warn',
+        'pkg_resources.markers',
+        'threading',
+        'webbrowser',
+        'json',
+        're',
+        'functools',
+        'os',
+        'sys',
+        'subprocess',
+        'time'
     ],
     hookspath=[],
     hooksconfig={},
     runtime_hooks=[],
-    excludes=[],
+    excludes=[
+        # Exclude unused modules to reduce size
+        'selenium',
+        'webdriver_manager',
+        'tkinter'
+    ],
     win_no_prefer_redirects=False,
     win_private_assemblies=False,
     cipher=block_cipher,
@@ -38,18 +59,19 @@ exe = EXE(
     a.zipfiles,
     a.datas,
     [],
-    name='Gasolio Tracker',
+    name='Gasolio_Tracker',
     debug=False,
     bootloader_ignore_signals=False,
     strip=False,
     upx=True,
     upx_exclude=[],
     runtime_tmpdir=None,
-    console=True,
+    console=True,  # Keep console for debugging
     disable_windowed_traceback=False,
     argv_emulation=False,
     target_arch=None,
     codesign_identity=None,
     entitlements_file=None,
-    icon='platts/icon.ico'  # Aggiungi un'icona se la hai
+    # Add icon if available - commented out if not present
+    # icon='platts/icon.ico'
 ) 
