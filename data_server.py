@@ -1,11 +1,6 @@
 import requests
 from flask import Flask, jsonify, render_template, request
-from selenium import webdriver
-from selenium.webdriver.chrome.service import Service as ChromeService
-from selenium.webdriver.common.by import By
-from selenium.webdriver.support.ui import WebDriverWait
-from selenium.webdriver.support import expected_conditions as EC
-from webdriver_manager.chrome import ChromeDriverManager
+import investpy
 import firebase_admin
 from firebase_admin import credentials, firestore, auth
 import os
@@ -14,8 +9,6 @@ import re
 from functools import wraps
 
 # --- Configuration ---
-INVESTING_URL = 'https://it.investing.com/commodities/london-gas-oil'  # Re-enabled for investing.com scraping
-# BLOOMBERG_URL = 'https://www.bloomberg.com/energy'  # COMMENTED OUT - Using only investing.com now
 EXCHANGE_RATE_URL = 'https://api.frankfurter.app/latest?from=USD&to=EUR'
 FIRESTORE_COLLECTION = 'platts'
 FIRESTORE_DOCUMENT = 'auto10'
@@ -113,53 +106,53 @@ def get_base_value_from_firestore():
 
 def get_price_change_from_investing():
     """
-    Scrapes price change from investing.com
+    Gets price change from investing.com using investpy API
     """
-    print("--- Starting price change scraping ---")
-    
-    options = webdriver.ChromeOptions()
-    options.add_argument('--headless')
-    options.add_argument('--no-sandbox')
-    options.add_argument('--disable-dev-shm-usage')
-    options.add_argument('user-agent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36')
+    print("--- Starting price change retrieval using investpy ---")
     
     try:
-        with webdriver.Chrome(service=ChromeService(ChromeDriverManager().install()), options=options) as driver:
-            print(f"Fetching {INVESTING_URL}...")
-            driver.get(INVESTING_URL)
-            
-            wait = WebDriverWait(driver, 30)
-
-            # Handle cookie consent if present
-            try:
-                cookie_button = wait.until(EC.element_to_be_clickable((By.XPATH, "//*[contains(text(), 'Accept')] | //button[contains(text(), 'Accept')] | //*[contains(text(), 'Accetta')]")))
-                cookie_button.click()
-                print("Cookie consent accepted.")
-            except Exception:
-                print("No cookie consent found, continuing...")
-
-            print("Looking for price change element...")
-            
-            # Look for the specific element with price change
-            price_change_element = wait.until(EC.presence_of_element_located((By.CSS_SELECTOR, 'span[data-test="instrument-price-change"]')))
-            price_change_text = price_change_element.text
-            
-            print(f"Found price change: {price_change_text}")
-            
-            # Extract numeric value from the text (handle + or - signs)
-            # Remove + sign and convert , to . for decimal
-            price_change_clean = price_change_text.replace('+', '').replace(',', '.')
-            
-            try:
-                price_change_value = float(price_change_clean)
-                print(f"Extracted price change value: {price_change_value}")
-                return price_change_value
-            except ValueError as e:
-                print(f"Error parsing price change value: {e}")
-                return None
-                
+        # Get recent data for London Gas Oil
+        print("Fetching London Gas Oil data...")
+        recent_data = investpy.get_commodity_recent_data(commodity='London Gas Oil')
+        
+        if len(recent_data) < 2:
+            print("Insufficient data to calculate price change")
+            return None
+        
+        # Get the latest and previous close prices
+        latest = recent_data.iloc[-1]
+        previous = recent_data.iloc[-2]
+        
+        price_change = latest['Close'] - previous['Close']
+        
+        print(f"Latest close price: {latest['Close']:.2f} USD/MT")
+        print(f"Previous close price: {previous['Close']:.2f} USD/MT")
+        print(f"Price change: {price_change:+.2f} USD/MT")
+        
+        return price_change
+        
     except Exception as e:
-        print(f"!!! Selenium scraping failed: {e}")
+        print(f"!!! investpy data retrieval failed: {e}")
+        print("Trying alternative search method...")
+        
+        try:
+            # Fallback to search method
+            search_result = investpy.search_quotes(text='London Gas Oil', products=['commodities'], n_results=1)
+            if search_result:
+                recent_data = search_result.retrieve_recent_data()
+                
+                if len(recent_data) >= 2:
+                    latest = recent_data.iloc[-1]
+                    previous = recent_data.iloc[-2]
+                    price_change = latest['Close'] - previous['Close']
+                    
+                    print(f"Search method - Latest close: {latest['Close']:.2f}, Previous: {previous['Close']:.2f}")
+                    print(f"Search method - Price change: {price_change:+.2f} USD/MT")
+                    
+                    return price_change
+        except Exception as search_error:
+            print(f"!!! Search method also failed: {search_error}")
+        
         return None
 
 # COMMENTED OUT - Using only investing.com scraping now
