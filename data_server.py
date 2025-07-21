@@ -19,25 +19,14 @@ app = Flask(__name__, template_folder='platts')
 # Initialize Firebase Admin
 try:
     if not firebase_admin._apps:
-        # Try different credential sources
-        credential_paths = [
-            "serviceAccount.json",
-            "firebase-credentials.json",
-            os.path.join(os.getcwd(), "firebase-credentials.json")
-        ]
+        # Hardcoded service account credentials for testing
+        service_account_info = {
+            
+        }
         
-        cred = None
-        for path in credential_paths:
-            if os.path.exists(path):
-                print(f"Using Firebase credentials from: {path}")
-                cred = credentials.Certificate(path)
-                break
-        
-        if cred:
-            firebase_admin.initialize_app(cred)
-        else:
-            print("No Firebase credentials found, using application default credentials")
-            firebase_admin.initialize_app()
+        print("Using hardcoded Firebase credentials for testing")
+        cred = credentials.Certificate(service_account_info)
+        firebase_admin.initialize_app(cred)
     
     db = firestore.client()
     print("Firebase initialized successfully")
@@ -106,7 +95,9 @@ def get_base_value_from_firestore():
 
 def get_price_change_from_investing():
     """
-    Gets price change from investing.com using investpy API
+    Gets today's price change percentage (Open vs Close) from investing.com using investpy API
+    Positive value = price went DOWN (Open > Close)
+    Negative value = price went UP (Open < Close)
     """
     print("--- Starting price change retrieval using investpy ---")
     
@@ -115,21 +106,45 @@ def get_price_change_from_investing():
         print("Fetching London Gas Oil data...")
         recent_data = investpy.get_commodity_recent_data(commodity='London Gas Oil')
         
-        if len(recent_data) < 2:
+        if len(recent_data) < 1:
             print("Insufficient data to calculate price change")
             return None
         
-        # Get the latest and previous close prices
+        # Get the latest data (today)
         latest = recent_data.iloc[-1]
-        previous = recent_data.iloc[-2]
         
-        price_change = latest['Close'] - previous['Close']
+        # DEBUG: Print date to verify we're using today's data
+        print(f"DEBUG - Today's data date: {latest.name}")
         
-        print(f"Latest close price: {latest['Close']:.2f} USD/MT")
-        print(f"Previous close price: {previous['Close']:.2f} USD/MT")
-        print(f"Price change: {price_change:+.2f} USD/MT")
+        # Get today's close and open prices
+        today_close = float(latest['Close'])
+        today_open = float(latest['Open'])
         
-        return price_change
+        # DEBUG: Print raw values
+        print(f"DEBUG - Today's close price: {today_close}")
+        print(f"DEBUG - Today's open price: {today_open}")
+        
+        # Calculate difference: opening price vs current price of today
+        price_diff = today_open - today_close
+        print(f"DEBUG - Price difference (Open - Close): {price_diff}")
+        
+        # Calculate percentage change from opening price
+        price_change_percent = (price_diff / today_open) * 100
+        
+        print(f"Today's open price: {today_open:.2f} USD/MT")
+        print(f"Today's close price: {today_close:.2f} USD/MT")
+        print(f"Price difference (Open - Close): {price_diff:+.2f} USD/MT")
+        print(f"Price change percentage: {price_change_percent:+.4f}%")
+        
+        # Additional verification
+        if price_diff < 0:
+            print("DEBUG - Confirming NEGATIVE change detected (Open < Close, price went UP)")
+        elif price_diff > 0:
+            print("DEBUG - Confirming POSITIVE change detected (Open > Close, price went DOWN)")
+        else:
+            print("DEBUG - No change detected (Open = Close)")
+        
+        return price_change_percent
         
     except Exception as e:
         print(f"!!! investpy data retrieval failed: {e}")
@@ -141,15 +156,25 @@ def get_price_change_from_investing():
             if search_result:
                 recent_data = search_result.retrieve_recent_data()
                 
-                if len(recent_data) >= 2:
+                if len(recent_data) >= 1:
                     latest = recent_data.iloc[-1]
-                    previous = recent_data.iloc[-2]
-                    price_change = latest['Close'] - previous['Close']
                     
-                    print(f"Search method - Latest close: {latest['Close']:.2f}, Previous: {previous['Close']:.2f}")
-                    print(f"Search method - Price change: {price_change:+.2f} USD/MT")
+                    today_close = float(latest['Close'])
+                    today_open = float(latest['Open'])
+                    price_diff = today_open - today_close
+                    price_change_percent = (price_diff / today_open) * 100
                     
-                    return price_change
+                    print(f"Search method - Today's open: {today_open:.2f}, Close: {today_close:.2f}")
+                    print(f"Search method - Price diff (Open-Close): {price_diff:+.2f}")
+                    print(f"Search method - Price change: {price_change_percent:+.4f}%")
+                    
+                    # Additional verification for search method
+                    if price_diff < 0:
+                        print("DEBUG - Search method: NEGATIVE change detected (Open < Close, price went UP)")
+                    elif price_diff > 0:
+                        print("DEBUG - Search method: POSITIVE change detected (Open > Close, price went DOWN)")
+                    
+                    return price_change_percent
         except Exception as search_error:
             print(f"!!! Search method also failed: {search_error}")
         
@@ -527,8 +552,8 @@ def get_data():
         
         return jsonify({"error": f"Missing data: {', '.join(missing)}. Check server logs."}), 500
     
-    # Calculations - Using investing.com change as primary source
-    valore_aggiornato = base_value + investing_change
+    # Calculations - Using investing.com change as primary source (now percentage)
+    valore_aggiornato = base_value * (1 + investing_change / 100)
     quotazione = exchange_rate * 0.845
     final_price = (valore_aggiornato / 1000) * quotazione + 0.6324
     
@@ -538,7 +563,7 @@ def get_data():
     print(f"Calculations completed for {user_email}:")
     print(f"  Base value (mq): {base_value}")
     print(f"  Base Platts price (€/liter): {base_platts_price:.4f}")
-    print(f"  Investing.com change: {investing_change}")
+    print(f"  Investing.com change: {investing_change:+.4f}%")
     print(f"  Valore aggiornato: {valore_aggiornato}")
     print(f"  Price variation (€cents/liter): {price_variation_euro_cents:+.2f}")
     print(f"  USD/EUR rate: {exchange_rate}")
@@ -548,13 +573,13 @@ def get_data():
     response_data = {
         "baseValue": f"{base_value:.2f}",
         "basePlattsPrice": f"{base_platts_price:.4f}",
-        "priceChange": f"{investing_change:+.2f}",
+        "priceChange": f"{investing_change:+.4f}%",
         "valoreAggiornato": f"{valore_aggiornato:.2f}",
         "priceVariationCents": f"{price_variation_euro_cents:+.2f}",
         "exchangeRate": f"{exchange_rate:.4f}",
         "quotazione": f"{quotazione:.2f}",
         "finalPrice": f"{final_price:.4f}",
-        "investingChange": f"{investing_change:+.2f}",
+        "investingChange": f"{investing_change:+.4f}%",
         "investingValoreAggiornato": f"{valore_aggiornato:.2f}",
         "investingFinalPrice": f"{final_price:.4f}",
         "lastUpdated": "Fresh data"
